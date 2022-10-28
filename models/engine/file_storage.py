@@ -5,7 +5,6 @@ Serializes instances to a JSON file and deserializes JSON file to instances
 """
 import json
 from datetime import datetime
-=======
 """ FileStorage Class
     serializes instances to a JSON file
     and deserializes JSON file to instances """
@@ -73,7 +72,6 @@ class FileStorage:
 
         except FileNotFoundError:
             pass
-=======
     """ construct """
     __file_path = "file.json"
     __objects = {}
@@ -101,4 +99,3 @@ class FileStorage:
                 for key, val in l_json.items():
                     FileStorage.__objects[key] = eval(
                         val['__class__'])(**val)
->>>>>>> ee1e6cfa822d51f02825d116ef5105c7735fb52b
