@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-<<<<<<< HEAD
+
 """
 Serializes instances to a JSON file and deserializes JSON file to instances
 """
@@ -14,7 +14,6 @@ import uuid
 import os
 from datetime import datetime
 from models.base_model import BaseModel
->>>>>>> ee1e6cfa822d51f02825d116ef5105c7735fb52b
 from models.user import User
 from models.state import State
 from models.city import City
@@ -24,7 +23,6 @@ from models.review import Review
 
 
 class FileStorage:
-<<<<<<< HEAD
     """
     Serializes instances to a JSON file and deserializes JSON file to instances
     """

@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-<<<<<<< HEAD
 """
 Defines the base model
 """
@@ -53,7 +52,7 @@ class BaseModel:
                         'id': self.id,
                         'created_at': self.created_at.isoformat()})
         return disdict
-=======
+
 """ BaseModel Class """
 from datetime import datetime
 from uuid import uuid4
@@ -103,4 +102,3 @@ class BaseModel:
         aux_dict['created_at'] = self.created_at.isoformat()
         aux_dict['updated_at'] = self.updated_at.isoformat()
         return aux_dict
->>>>>>> ee1e6cfa822d51f02825d116ef5105c7735fb52b

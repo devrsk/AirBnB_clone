@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-<<<<<<< HEAD
 """
 Airbnb Console
 """
@@ -1378,7 +1377,7 @@ must be between double quotes **")
         """Empty line + Enter shouldn't execute anything"""
         pass
 
-=======
+
 """ AirBnB Console """
 import cmd
 import sys
@@ -1508,7 +1507,7 @@ class HBNBCommand(cmd.Cmd):
                     print('** attribute name missing **')
             else:
                 print('** no instance found **')
->>>>>>> ee1e6cfa822d51f02825d116ef5105c7735fb52b
+
 
 if __name__ == '__main__':
     HBNBCommand().cmdloop()
