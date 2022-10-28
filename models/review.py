@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-<<<<<<< HEAD
 """
 Defines the state model
 """
