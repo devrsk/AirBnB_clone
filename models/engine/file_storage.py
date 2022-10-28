@@ -1,101 +1,88 @@
 #!/usr/bin/python3
+"""This modeule defines that file storage class"""
 
-"""
-Serializes instances to a JSON file and deserializes JSON file to instances
-"""
+
 import json
-from datetime import datetime
-""" FileStorage Class
-    serializes instances to a JSON file
-    and deserializes JSON file to instances """
-import json
-import uuid
-import os
-from datetime import datetime
-from models.base_model import BaseModel
-from models.user import User
-from models.state import State
-from models.city import City
-from models.amenity import Amenity
-from models.place import Place
-from models.review import Review
 
 
 class FileStorage:
+    """The ``FileStorage`` class serializes instances to a JSON
+    file and deserializes JSON file to instances.
+    It helps to store object in json formats in a file.
     """
-    Serializes instances to a JSON file and deserializes JSON file to instances
-    """
-    __file_path = 'file.json'
     __objects = {}
+    __file_path = "objects.json"
+
+    @property
+    def file_path(self):
+        """
+        file_path (string): path to the JSON file. Default is ``objects.json``
+        at root directory
+
+        Raises:
+            TypeError: if the file_path is not of type string
+        """
+        return self.__file_path
+
+    @file_path.setter
+    def file_path(self, value):
+        if not type(value) == str:
+            raise TypeError("File path can only be a string")
+        self.__file_path = value
+
+    @property
+    def objects(self):
+        """
+        objects (dictionary): Stores all object with ``<class name>.id``
+        as key
+
+        Raises:
+            TypeError: if the value to set is not a dictionary
+
+        Example:
+            BaseModel object with id=1212122, the key will be
+            BaseModel.1212121212
+        """
+        return self.__objects
+
+    @objects.setter
+    def objects(self, value):
+        if not type(value) == dict:
+            raise TypeError("Value of object can only be of type dict")
+        self.__objects = value
 
     def all(self):
-        return FileStorage.__objects
+        """Returns all objects in a file JSON"""
+        return self.__objects
 
     def new(self, obj):
-        key = type(obj).__name__ + '.' + obj.id
-        FileStorage.__objects[key] = obj
+        """Add the ``obj`` to the __object dictionary with key
+        ``<obj class name>.id``
+
+        Args:obj (dict): dictionary containing attributes of objects to create
+
+        Raises:TypeError: if ``obj`` is not a dictionary
+        """
+        # if not type(obj) == dict:
+        #     raise TypeError("Arg obj can only be of type dict")
+        class_name = obj.get('__class__')
+        id = obj.get('id')
+        key = class_name + '.' + id
+        self.__objects[key] = obj
 
     def save(self):
-        """
-        serializes FileStroage.__objects
-        """
-        with open(FileStorage.__file_path, 'w+') as f:
-            dictofobjs = {}
-            for key, value in FileStorage.__objects.items():
-                dictofobjs[key] = value.to_dict()
-            json.dump(dictofobjs, f)
+        """Serializes objects in the filestorage to the JSON file"""
+        with open(self.__file_path, mode="w", encoding="utf-8") as file:
+            json.dump(self.__objects, file, indent="\t")
+        return "OK"
 
     def reload(self):
-        """
-        deserializes instances got from json file
+        """Deserializes the JSON file to filestorage if the file_path exists
+            The deserialized objects are stored in __objects of filestorage
         """
         try:
-            with open(FileStorage.__file_path, 'r') as f:
-                dictofobjs = json.loads(f.read())
-                from models.base_model import BaseModel
-                from models.user import User
-                for key, value in dictofobjs.items():
-                    if value['__class__'] == 'BaseModel':
-                        FileStorage.__objects[key] = BaseModel(**value)
-                    elif value['__class__'] == 'User':
-                        FileStorage.__objects[key] = User(**value)
-                    elif value['__class__'] == 'Place':
-                        FileStorage.__objects[key] = Place(**value)
-                    elif value['__class__'] == 'State':
-                        FileStorage.__objects[key] = State(**value)
-                    elif value['__class__'] == 'City':
-                        FileStorage.__objects[key] = City(**value)
-                    elif value['__class__'] == 'Amenity':
-                        FileStorage.__objects[key] = Amenity(**value)
-                    elif value['__class__'] == 'Review':
-                        FileStorage.__objects[key] = Review(**value)
-
-        except FileNotFoundError:
+            with open(self.__file_path, mode='r',
+                      encoding="utf-8") as json_file:
+                self.__objects = json.load(json_file)
+        except OSError:
             pass
-    """ construct """
-    __file_path = "file.json"
-    __objects = {}
-
-    def all(self):
-        """ return dictionary objects """
-        return FileStorage.__objects
-
-    def new(self, obj):
-        """ sets in dictionary the obj with key <obj class name>.id """
-        FileStorage.__objects[obj.__class__.__name__ + "." + str(obj.id)] = obj
-
-    def save(self):
-        """ serializes objectss to the JSON file (path: __file_path) """
-        with open(FileStorage.__file_path, 'w', encoding='utf-8') as fname:
-            new_dict = {key: obj.to_dict() for key, obj in
-                        FileStorage.__objects.items()}
-            json.dump(new_dict, fname)
-
-    def reload(self):
-        """ Reload the file """
-        if (os.path.isfile(FileStorage.__file_path)):
-            with open(FileStorage.__file_path, 'r', encoding="utf-8") as fname:
-                l_json = json.load(fname)
-                for key, val in l_json.items():
-                    FileStorage.__objects[key] = eval(
-                        val['__class__'])(**val)

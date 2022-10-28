@@ -1,104 +1,73 @@
 #!/usr/bin/python3
 """
-Defines the base model
+The parent module
 """
-import uuid
+
+
 from datetime import datetime
+from models import storage
+import uuid
 
 
-class BaseModel:
+class BaseModel():
     """
-    Defines all common attributes and methods for other classes
-    Also links BaseModel to FileStorage by using the variable storage
+    The parent class that all classes of AirBnB inherits\n
+    It handles the initialization, serialization and
+    deserialization of all instances
+
+    Attributes:
+        ``id (string)``: a ``uuid`` assigned when an instance
+        is created that uniquely identifies an instance
+        ``created_at (datetime)``: current datetime when an instance is created
+        ``updated_at (datetime)``: current datetime when an instance is updated
     """
-    def __init__(self, *args, **kwargs):
+
+    def __init__(self, **kwargs):
         """
-        Initializes an instance
+        Initializes the BaseModel
         """
-        if kwargs is not None and len(kwargs) != 0:
-            if '__class__' in kwargs:
-                del kwargs['__class__']
-            kwargs['created_at'] = datetime.fromisoformat(kwargs['created_at'])
-            kwargs['updated_at'] = datetime.fromisoformat(kwargs['updated_at'])
-            self.__dict__.update(kwargs)
+        if kwargs:
+            for key in kwargs.keys():
+                if key != "__class__":
+                    if key not in ["created_at", "updated_at"]:
+                        self.__setattr__(key, kwargs[key])
+                    else:
+                        self.__setattr__(
+                            key, datetime.fromisoformat(kwargs[key]))
         else:
             self.id = str(uuid.uuid4())
             self.created_at = datetime.now()
-            self.updated_at = datetime.now()
-            from .__init__ import storage
-            storage.new(self)
+            self.updated_at = self.created_at
+            storage.new(self.to_dict())
 
     def __str__(self):
-        """
-        String representation when instance is printed
-        """
-        return f"[{type(self).__name__}] ({self.id}) {self.__dict__}"
+        return f"[{self.__class__.__name__}] ({self.id}) {self.__dict__}"
 
     def save(self):
+        """Updates the public instance attribute ``updated_at``
+        with the current datetime and save the model to the JSON file
         """
-        Save updates to an instance
-        """
-        self.__dict__.update({'updated_at': datetime.now()})
-        from .__init__ import storage
+        self.updated_at = datetime.now()
+        storage.new(self.to_dict())
         storage.save()
 
     def to_dict(self):
         """
-        Returns a dictionary representation of an instance
+        Returns:
+            A dictionary containing all keys/values of ``__dict__``
+            of the instance
+
+        Note:
+            A key ``__class__`` is added to the dictionary with
+            the class name of the object.
+            The ``created_at`` and ``updated_at`` are converted
+            to string object in ISO format ``%Y-%m-%dT%H:%M:%S.%f``
         """
-        disdict = dict(self.__dict__)
-        disdict.update({'__class__': type(self).__name__,
-                        'updated_at': self.updated_at.isoformat(),
-                        'id': self.id,
-                        'created_at': self.created_at.isoformat()})
-        return disdict
 
-""" BaseModel Class """
-from datetime import datetime
-from uuid import uuid4
-import models
-
-
-class BaseModel:
-    """ construct """
-
-    def __init__(self, *args, **kwargs):
-        """ Construct """
-        if kwargs:
-            for key, value in kwargs.items():
-                if key == '__class__':
-                    continue
-                elif key == 'updated_at':
-                    value = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
-                elif key == 'created_at':
-                    value = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
-                if 'id' not in kwargs.keys():
-                    self.id = str(uuid4())
-                if 'created_at' not in kwargs.keys():
-                    self.created_at = datetime.now()
-                if 'updated_at' not in kwargs.keys():
-                    self.updated_at = datetime.now()
-                setattr(self, key, value)
-        else:
-            self.id = str(uuid4())
-            self.created_at = datetime.now()
-            self.updated_at = self.created_at
-            models.storage.new(self)
-
-    def __str__(self):
-        """ String """
-        return('[' + type(self).__name__ + '] (' + str(self.id) +
-               ') ' + str(self.__dict__))
-
-    def save(self):
-        """ Save Function """
-        self.updated_at = datetime.now()
-        models.storage.save()
-
-    def to_dict(self):
-        """ Returns dictonary"""
-        aux_dict = self.__dict__.copy()
-        aux_dict['__class__'] = self.__class__.__name__
-        aux_dict['created_at'] = self.created_at.isoformat()
-        aux_dict['updated_at'] = self.updated_at.isoformat()
-        return aux_dict
+        class_dict = self.__dict__.copy()
+        class_dict['__class__'] = self.__class__.__name__
+        class_dict['created_at'] = datetime.isoformat(
+            class_dict['created_at'])
+        class_dict['updated_at'] = datetime.isoformat(
+            class_dict['updated_at'])
+        return class_dict
