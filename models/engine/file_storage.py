@@ -1,88 +1,57 @@
 #!/usr/bin/python3
-"""This modeule defines that file storage class"""
-
-
+"""
+Contains the FileStorage class model
+"""
 import json
+
+from models.base_model import BaseModel
+from models.user import User
+from models.state import State
+from models.amenity import Amenity
+from models.city import City
+from models.place import Place
+from models.review import Review
 
 
 class FileStorage:
-    """The ``FileStorage`` class serializes instances to a JSON
-    file and deserializes JSON file to instances.
-    It helps to store object in json formats in a file.
     """
+    serializes instances to a JSON file and
+    deserializes JSON file to instances
+    """
+
+    __file_path = "file.json"
     __objects = {}
-    __file_path = "objects.json"
-
-    @property
-    def file_path(self):
-        """
-        file_path (string): path to the JSON file. Default is ``objects.json``
-        at root directory
-
-        Raises:
-            TypeError: if the file_path is not of type string
-        """
-        return self.__file_path
-
-    @file_path.setter
-    def file_path(self, value):
-        if not type(value) == str:
-            raise TypeError("File path can only be a string")
-        self.__file_path = value
-
-    @property
-    def objects(self):
-        """
-        objects (dictionary): Stores all object with ``<class name>.id``
-        as key
-
-        Raises:
-            TypeError: if the value to set is not a dictionary
-
-        Example:
-            BaseModel object with id=1212122, the key will be
-            BaseModel.1212121212
-        """
-        return self.__objects
-
-    @objects.setter
-    def objects(self, value):
-        if not type(value) == dict:
-            raise TypeError("Value of object can only be of type dict")
-        self.__objects = value
 
     def all(self):
-        """Returns all objects in a file JSON"""
+        """
+        Returns the dictionary __objects
+        """
         return self.__objects
 
     def new(self, obj):
-        """Add the ``obj`` to the __object dictionary with key
-        ``<obj class name>.id``
-
-        Args:obj (dict): dictionary containing attributes of objects to create
-
-        Raises:TypeError: if ``obj`` is not a dictionary
         """
-        # if not type(obj) == dict:
-        #     raise TypeError("Arg obj can only be of type dict")
-        class_name = obj.get('__class__')
-        id = obj.get('id')
-        key = class_name + '.' + id
-        self.__objects[key] = obj
+        sets in __objects the `obj` with key <obj class name>.id
+        """
+        self.__objects["{}.{}".format(obj.__class__.__name__, obj.id)] = obj
 
     def save(self):
-        """Serializes objects in the filestorage to the JSON file"""
-        with open(self.__file_path, mode="w", encoding="utf-8") as file:
-            json.dump(self.__objects, file, indent="\t")
-        return "OK"
+        """
+        Serialize __objects to the JSON file
+        """
+        with open(self.__file_path, mode="w") as f:
+            dict_storage = {}
+            for k, v in self.__objects.items():
+                dict_storage[k] = v.to_dict()
+            json.dump(dict_storage, f)
 
     def reload(self):
-        """Deserializes the JSON file to filestorage if the file_path exists
-            The deserialized objects are stored in __objects of filestorage
+        """
+        Deserializes the JSON file to __objects
+        -> Only IF it exists!
         """
         try:
-            with open(self.__file_path, mode='r',
-                      encoding="utf-8") as json_file:
-                self.__objects = json.load(json_file)
-        except OSError:
-            pass
+            with open(self.__file_path, encoding="utf-8") as f:
+                for obj in json.load(f).values():
+                    self.new(eval(obj["__class__"])(**obj))
+        except FileNotFoundError:
+            return
