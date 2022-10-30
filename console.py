@@ -128,6 +128,14 @@ class HBNBCommand(cmd.Cmd):
                     print('** attribute name missing **')
             else:
                 print('** no instance found **')
+	def do_count(self, arg):
+            """Retrieve the number of instances of a class"""
+            arg1 = parse(arg)
+            count = 0
+            for obj in models.storage.all().values():
+                if arg1[0] == type(obj).__name__:
+                    count += 1
+            print(count)
 
 if __name__ == '__main__':
     HBNBCommand().cmdloop()
