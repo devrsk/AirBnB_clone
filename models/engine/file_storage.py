@@ -1,87 +1,129 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
+"""This module contains a base class called 'FileStorage' that defines
+the process that serializes and deserializes to JSON
+file_storage module manages data stored in file.json
+and manages CRUD operation
 """
-Contains the FileStorage class
-"""
-
 import json
-from models.amenity import Amenity
-from models.base_model import BaseModel
-from models.city import City
-from models.place import Place
-from models.review import Review
-from models.state import State
-from models.user import User
-
-classes = {"Amenity": Amenity, "BaseModel": BaseModel, "City": City,
-           "Place": Place, "Review": Review, "State": State, "User": User}
+import importlib
+import re
 
 
 class FileStorage:
-    """serializes instances to a JSON file & deserializes back to instances"""
-
-    __file_path = "file.json"
+    """ An abstracted file storage engine
+    Private class attributes:
+        __file_path: string - path to the JSON file (ex: file.json)
+        __objects: dictionary - empty but will store all objects by
+        class name.id
+    Public instance methods:
+        all(self): returns the dictionary __objects
+        new(self, obj): sets in __objects the obj with
+        key <obj class name>.id save(self): serializes
+        __objects to the JSON file (path: __file_path)
+        reload(self): deserializes the JSON file to __objects
+        (only if the JSON file (__file_path) exists otherwise
+        , do nothing.
+    """
+    __file_path = 'file.json'
     __objects = {}
 
-    def all(self, cls=None):
-        """returns the dictionary __objects"""
-        if not cls:
-            return self.__objects
-        elif type(cls) == str:
-            return {k: v for k, v in self.__objects.items()
-                    if v.__class__.__name__ == cls}
-        else:
-            return {k: v for k, v in self.__objects.items()
-                    if v.__class__ == cls}
+    def all(self):
+        """ returns the dictionary __objects """
+        return FileStorage.__objects
 
     def new(self, obj):
-        """sets in __objects the obj with key <obj class name>.id"""
-        if obj is not None:
-            key = obj.__class__.__name__ + "." + obj.id
-            self.__objects[key] = obj
+        """Creates a new instance of a specific class and
+        saves it into the file storage
+        """
+        key_name = "{}.{}".format(obj.__class__.__name__, obj.id)
+        FileStorage.__objects[key_name] = obj
 
     def save(self):
-        """serializes __objects to the JSON file (path: __file_path)"""
-        json_objects = {}
-        for key in self.__objects:
-            json_objects[key] = self.__objects[key].to_dict(save_to_disk=True)
-        with open(self.__file_path, 'w') as f:
-            json.dump(json_objects, f)
+        """Saves the instances of all classes into a
+        .json file using the json string format
+        """
+        content = self.__serialize()
+
+        with open(FileStorage.__file_path, 'w') as file:
+            file.write(content)
 
     def reload(self):
-        """deserializes the JSON file to __objects"""
+        """Deserializes the JSON file to __objects (only if
+        the JSON file (__file_path) exists ; otherwise, do nothing.
+        """
+        file_data = self.__deserialize()
+
+        if not file_data:
+            return
+
+        for k, value in file_data.items():
+            class_name = value["__class__"]
+            FileStorage.__objects[k] = self.choose_class(class_name, value)
+
+    def create(self, class_name):
+        """Auxiliar function to create new instances of an specific class
+        """
+        my_model = self.choose_class(class_name)
+        my_model.save()
+        print(my_model.id)
+
+    def choose_class(self, class_name, data=None):
+        """Chooses the correct kind of class for an instance - to create
+        instances, to use the to_dict function, to save into the Json file,etc.
+        """
+        module_name = self.to_snake_case(class_name)
+        module = importlib.import_module(module_name)
+        class_ = getattr(module, class_name)
+        if data:
+            return class_(**data)
+        else:
+            return class_()
+
+    def print(self, class_name=None):
+        """ print all elements in storage and filter by class_name"""
+        print(self.filter_by_class(class_name))
+
+    def filter_by_class(self, class_name):
+        """Auxiliar function to print or show the instances of an specific
+        type of class.
+        """
+        if not class_name:
+            return self.to_list()
+
+        filtered = []
+        for k, value in self.all().items():
+            split_key = k.split('.')
+            if split_key[0] == class_name:
+                filtered.append(str(value))
+        return filtered
+
+    def to_list(self):
+        """ take a dictionary and transform this to list
+            with objects cast to str"""
+        data_list = []
+        for _, value in self.all().items():
+            data_list.append(str(value))
+        return data_list
+
+    def __serialize(self):
+        """
+        BaseModel->to_dict() -> <class 'dict'> -> JSON dump -> <class 'str'>
+        """
+        objects = {}
+        for key, obj in self.all().items():
+            objects[key] = obj.to_dict()
+
+        return str(json.dumps(objects))
+
+    def __deserialize(self):
+        "File -> str -> JSON load -> dict -> BaseModel"
         try:
-            with open(self.__file_path, 'r') as f:
-                jo = json.load(f)
-            for key in jo:
-                self.__objects[key] = classes[jo[key]["__class__"]](**jo[key])
+            with open(FileStorage.__file_path) as file:
+                return json.load(file)
         except:
             pass
 
-    def delete(self, obj=None):
-        """delete obj from __objects if it’s inside"""
-        if obj is not None:
-            del self.__objects[obj.__class__.__name__ + '.' + obj.id]
-            self.save()
-
-    def close(self):
-        """Deserialize JSON file to objects"""
-        self.reload()
-
-    def get(self, cls, id):
-        """Retrieve an object"""
-        if cls is not None and type(cls) is str and id is not None and\
-           type(id) is str and cls in classes:
-            key = cls + '.' + id
-            obj = self.__objects.get(key, None)
-            return obj
-        else:
-            return None
-
-    def count(self, cls=None):
-        """Count number of objects in storage"""
-        total = 0
-        if type(cls) == str and cls in classes:
-            total = len(self.all(cls))
-        elif cls is None:
-            total = len(self.__objects)
-        return total
+    def to_snake_case(self, text):
+        """ Transform text to snake case """
+        module_name = re.sub(r'(?<!^)(?=[A-Z])', '_', text).lower()
+        return "models.{}".format(module_name)
