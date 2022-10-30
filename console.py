@@ -127,12 +127,86 @@ class HBNBCommand(cmd.Cmd):
 
     def do_count(self, arg):
         """Retrieve the number of instances of a class"""
-        arg1 = parse(arg)
-        count = 0
-        for obj in models.storage.all().values():
-            if arg1[0] == type(obj).__name__:
-                count += 1
-        print(count)
+        cont = 0
+        objects = models.storage.all()
+        new = {}
+        for elem in objects:
+            new[elem] = objects[elem].to_dict()
+        for elem in new:
+            if (args == new[elem]['__class__']):
+                cont = cont + 1
+        print(cont)
+
+def default(self, args):
+        """ Handle alternative command representations """
+        first = args.split('.')
+        if len(first) > 1:
+            class_name = first[0]
+            methods = first[1]
+            first[1] = first[1].replace('(', '&(')
+            second = first[1].split('&')
+            comando = class_name
+
+            if methods == "all()":
+                self.do_all(comando)
+            elif methods == "count()":
+                self.do_count(comando)
+            else:
+                methods = second[0]
+                elems = second[1]
+                elems = elems.replace('(', '')
+                elems = elems.replace(')', '')
+                elems = elems.replace('{', '"{')
+                elems = elems.replace('}', '}"')
+                third = shlex.split(elems)
+                if not third:
+                    id = ' '
+                    third.append(id)
+                else:
+                    for i in range(len(third)):
+                        third[i] = third[i].replace(',', ' ')
+                        third[i] = third[i].strip()
+                    id = third[0]
+                comando = comando + ' ' + id
+                comando = comando.replace('\"', '')
+                if methods == "show" and len(third) == 1:
+                    self.do_show(comando)
+                elif methods == "destroy" and len(third) == 1:
+                    self.do_destroy(comando)
+                elif methods == "update":
+                    x = len(third)
+                    if x > 1 and third[1][0] == '{' and third[1][-1] == '}':
+                        third[1] = third[1].replace('{', '')
+                        third[1] = third[1].replace('}', '')
+                        third[1] = third[1].replace(': ', ':')
+                        sub = shlex.split(third[1], ', ')
+                        new = []
+                        for ele in sub:
+                            sub2 = ele.split(':')
+                            if len(sub2) < 2:
+                                sub2.append('')
+                            new.append(tuple(sub2))
+                        dicti = dict(new)
+                        print(dicti)
+                        for key in dicti:
+                            new_comand = comando + ' '
+                            new_comand += str(key)
+                            new_comand = new_comand.replace('\"', '')
+                            new_comand = new_comand.replace('\'', '')
+                            new_comand += ' \"' + str(dicti[key]) + '\"'
+                            self.do_update(new_comand)
+                    else:
+                        for i in range(1, len(third)):
+                            if i == 1:
+                                comando = comando + ' ' + third[i]
+                            if i == 2:
+                                comando = comando + ' '
+                                comando += '\"' + third[i] + '\"'
+                        self.do_update(comando)
+                else:
+                    return cmd.Cmd.default(self, args)
+        else:
+            return cmd.Cmd.default(self, args)
 
 if __name__ == '__main__':
     HBNBCommand().cmdloop()
