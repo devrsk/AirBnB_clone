@@ -1,5 +1,10 @@
-#!/usr/bin/python3
-""" init for class FileStorage """
+import os
+
+from models.engine.db_storage import DBStorage
 from models.engine.file_storage import FileStorage
-storage = FileStorage()
+
+storage = DBStorage() if os.getenv(
+    'HBNB_TYPE_STORAGE') == 'db' else FileStorage()
+"""A unique FileStorage/DBStorage instance for all models.
+"""
 storage.reload()
