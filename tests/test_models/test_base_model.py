@@ -1,108 +1,101 @@
-#!/usr/bin/env python3
-"""
-    This is a module test from BaseModel class and the methods therein.
-"""
+"""Testing the `base_model` module."""
+import json
+import os
+import time
 import unittest
+import uuid
+from datetime import datetime
 from models.base_model import BaseModel
-from datetime import datetime, time
-from time import sleep
-import models
+from models.engine.file_storage import FileStorage
 
-class TestBaseModel_initialization(unittest.TestCase):
-    
-    """ Unittests for the initialization of the BaseModel class """
-    def test_no_initialization_args(self):
-        self.assertEqual(BaseModel, type(BaseModel()))
 
-    def test_id(self):
-        self.assertEqual(str, type(BaseModel().id))
+class TestBase(unittest.TestCase):
+    """Test cases for the `Base` class.
+    """
 
-    def test_models_unique_ids(self):
-        mod1 = BaseModel()
-        mod2 = BaseModel()
-        self.assertNotEqual(mod1.id, mod2.id)
+    def setUp(self):
+        pass
 
-    def test_created_at(self):
-        self.assertEqual(datetime, type(BaseModel().created_at))
+    def tearDown(self) -> None:
+        """Resets FileStorage data."""
+        FileStorage._FileStorage__objects = {}
+        if os.path.exists(FileStorage._FileStorage__file_path):
+            os.remove(FileStorage._FileStorage__file_path)
 
-    def test_updated_at(self):
-        self.assertEqual(datetime, type(BaseModel().updated_at))
+    def test_initialization_positive(self):
+        """Test passing cases `BaseModel` initialization.
+        """
+        b1 = BaseModel()
+        b2_uuid = str(uuid.uuid4())
+        b2 = BaseModel(id=b2_uuid, name="The weeknd", album="Trilogy")
+        self.assertIsInstance(b1.id, str)
+        self.assertIsInstance(b2.id, str)
+        self.assertEqual(b2_uuid, b2.id)
+        self.assertEqual(b2.album, "Trilogy")
+        self.assertEqual(b2.name, "The weeknd")
+        self.assertIsInstance(b1.created_at, datetime)
+        self.assertIsInstance(b1.created_at, datetime)
+        self.assertEqual(str(type(b1)),
+                         "<class 'models.base_model.BaseModel'>")
 
-    def test_models_creation_time(self):
-        mod1 = BaseModel()
-        sleep(0.05)
-        mod2 = BaseModel()
-        self.assertLess(mod1.created_at, mod2.created_at)
+    def test_dict(self):
+        """Test method for dict"""
+        b1 = BaseModel()
+        b2_uuid = str(uuid.uuid4())
+        b2 = BaseModel(id=b2_uuid, name="The weeknd", album="Trilogy")
+        b1_dict = b1.to_dict()
+        self.assertIsInstance(b1_dict, dict)
+        self.assertIn('id', b1_dict.keys())
+        self.assertIn('created_at', b1_dict.keys())
+        self.assertIn('updated_at', b1_dict.keys())
+        self.assertEqual(b1_dict['__class__'], type(b1).__name__)
+        with self.assertRaises(KeyError) as e:
+            b2.to_dict()
 
-    def test_models_update_time(self):
-        mod1 = BaseModel()
-        sleep(0.05)
-        mod2 = BaseModel()
-        self.assertLess(mod1.updated_at, mod2.updated_at)
+    def test_save(self):
+        """Test method for save"""
+        b = BaseModel()
+        time.sleep(0.5)
+        date_now = datetime.now()
+        b.save()
+        diff = b.updated_at - date_now
+        self.assertTrue(abs(diff.total_seconds()) < 0.01)
 
-    def test_args_and_kwargs(self):
-        t = datetime.today()
-        t_form = t.isoformat()
-        mod = BaseModel("12", id="345", created_at=t_form, updated_at=t>
-        self.assertEqual(mod.id, "345")
-        self.assertEqual(mod.created_at, t)
-        self.assertEqual(mod.updated_at, t)
+    def test_save_storage(self):
+        """Tests that storage.save() is called from save()."""
+        b = BaseModel()
+        b.save()
+        key = "{}.{}".format(type(b).__name__, b.id)
+        d = {key: b.to_dict()}
+        self.assertTrue(os.path.isfile(FileStorage._FileStorage__file_path))
+        with open(FileStorage._FileStorage__file_path,
+                  "r", encoding="utf-8") as f:
+            self.assertEqual(len(f.read()), len(json.dumps(d)))
+            f.seek(0)
+            self.assertEqual(json.load(f), d)
 
-    def test_None_kwargs(self):
-        with self.assertRaises(TypeError):
-                BaseModel(id=None, created_at=None, updated_at=None)
+    def test_save_no_args(self):
+        """Tests save() with no arguments."""
+        self.resetStorage()
+        with self.assertRaises(TypeError) as e:
+            BaseModel.save()
+        msg = "save() missing 1 required positional argument: 'self'"
+        self.assertEqual(str(e.exception), msg)
 
-    def test_no_args(self):
-        mod = BaseModel(None)
-            self.assertNotIn(None, bm.__dict__.values())
+    def test_save_excess_args(self):
+        """Tests save() with too many arguments."""
+        self.resetStorage()
+        with self.assertRaises(TypeError) as e:
+            BaseModel.save(self, 98)
+        msg = "save() takes 1 positional argument but 2 were given"
+        self.assertEqual(str(e.exception), msg)
 
-class TestBaseModel_save(unittest.TestCase):                  
-        """ Unittests for the save method """
-        def test_save1(self):
-                mod = BaseModel()
-                sleep(0.05)
-                updated_at1 = mod.updated_at
-                mod.save()
-                self.assertLess(updated_at1, mod.updated_at)
-
-        def test_save2(self):
-                mod = BaseModel()
-                sleep(0.05)
-                updated1 = mod.updated_at
-                mod.save()
-                update2 = mod.updated_at
-                self.assertLess(updated1, update2)
-                sleep(0.05)
-                mod.save()
-                self.assertLess(update2, mod.update_at)
-
-class TestBaseModel_to_dict(unittest.TestCase):
-        """ unittests for to_dict method """
-        def test_dict_type(self):
-                mod = BaseModel()
-                self.assertTrue(dict, type(mod.to_dict()))
-
-        def test_dict_keys(self):
-                mod = BaseModel()
-                mod_dict = mod.to_dict()
-                self.assertIn('id', mod_dict)
-                self.assertIn('created_at', mod_dict)
-                self.assertIn('updated_at', mod_dict)
-                self.assertIn('__class__', mod_dict)
-
-        def test_dict_sample(self):
-                t = datetime.today()
-                mod = BaseModel()
-                mod.id = '00'
-                mod.created_at = mod.updated_at = t
-                 dict = {
-                        'id': '00',
-                        '__class__': 'BaseModel',
-                        'created_at': t.isoformat(),
-                        'updated_at': t.isoformat()
-                        }
-                self.assertDictEqual(mod.to_dict(), dict)
+    def test_str(self):
+        """Test method for str representation"""
+        b1 = BaseModel()
+        string = f"[{type(b1).__name__}] ({b1.id}) {b1.__dict__}"
+        self.assertEqual(b1.__str__(), string)
 
 
 if __name__ == "__main__":
-        unittest.main()
+    unittest.main()
